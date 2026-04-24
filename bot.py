@@ -4,8 +4,7 @@ import random
 import time
 import json
 import os
-
-TOKEN = "ここにトークン"
+TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
