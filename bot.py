@@ -4,6 +4,7 @@ import random
 import time
 import json
 import os
+
 TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
@@ -19,6 +20,17 @@ omikuji_data = {
     "凶 😢": "今日は慎重にしとけ。お前の判断力、基本的に信用ならんし",
     "大凶 💀": "終わってる。今日のお前は歩く災害。外出るな、世界のために"
 }
+
+# 出現確率（バランス型）
+weights = [
+    10, # 大吉
+    20, # 中吉
+    20, # 小吉
+    20, # 吉
+    15, # 末吉
+    10, # 凶
+    5   # 大凶
+]
 
 COOLDOWN = 3600
 FILE_NAME = "cooldown.json"
@@ -56,7 +68,8 @@ async def omikuji(ctx):
             )
             return
 
-    result = random.choice(list(omikuji_data.keys()))
+    results = list(omikuji_data.keys())
+    result = random.choices(results, weights=weights, k=1)[0]
     message = omikuji_data[result]
 
     last_used[user_id] = now
@@ -70,7 +83,9 @@ async def omikuji(ctx):
 
     embed.add_field(name="一言", value=message, inline=False)
     embed.set_footer(text=f"{ctx.author} の運勢")
-    embed.set_thumbnail(url=ctx.author.avatar.url)
+
+    if ctx.author.avatar:
+        embed.set_thumbnail(url=ctx.author.avatar.url)
 
     await ctx.send(embed=embed)
 
