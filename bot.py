@@ -11,6 +11,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# -----------------------------
+# おみくじデータ
+# -----------------------------
 omikuji_data = {
     "超大吉 🔱": "まじでお前今日最強よ。わいも毒舌コメントできないわ",
 
@@ -66,24 +69,24 @@ omikuji_data = {
     "超大凶 💔☠": "今日はマジでずっと寝てたほうがいい。言葉がでないわ"
 }
 
-def get_random_omikuji():
-    key = random.choice(list(omikuji.keys()))
-    msg = random.choice(omikuji[key])
-    return f"{key}: {msg}"
-
-# 出現確率（バランス型）
+# -----------------------------
+# 出現確率（重み）
+# -----------------------------
 weights = [
-    1, #超大吉
-    10, # 大吉
-    20, # 中吉
-    20, # 小吉
-    20, # 吉
-    15, # 末吉
-    10, # 凶
-    5, # 大凶
-    1 #超大凶
+    1,   # 超大吉
+    10,  # 大吉
+    20,  # 中吉
+    20,  # 小吉
+    20,  # 吉
+    15,  # 末吉
+    10,  # 凶
+    5,   # 大凶
+    1    # 超大凶
 ]
 
+# -----------------------------
+# クールダウン設定
+# -----------------------------
 COOLDOWN = 3600
 FILE_NAME = "cooldown.json"
 
@@ -99,15 +102,22 @@ def save_data(data):
 
 last_used = load_data()
 
+# -----------------------------
+# Bot 起動
+# -----------------------------
 @bot.event
 async def on_ready():
     print(f"ログインした: {bot.user}")
 
+# -----------------------------
+# おみくじコマンド
+# -----------------------------
 @bot.command()
 async def omikuji(ctx):
     user_id = str(ctx.author.id)
     now = time.time()
 
+    # クールダウンチェック
     if user_id in last_used:
         elapsed = now - last_used[user_id]
         remaining = COOLDOWN - elapsed
@@ -120,13 +130,22 @@ async def omikuji(ctx):
             )
             return
 
+    # 運勢を重み付きで抽選
     results = list(omikuji_data.keys())
     result = random.choices(results, weights=weights, k=1)[0]
-    message = omikuji_data[result]
 
+    # 一言メッセージを抽選（リスト or 文字列）
+    value = omikuji_data[result]
+    if isinstance(value, list):
+        message = random.choice(value)
+    else:
+        message = value
+
+    # クールダウン更新
     last_used[user_id] = now
     save_data(last_used)
 
+    # Embed 作成
     embed = discord.Embed(
         title="🎴 おみくじ結果",
         description=f"**{result}**",
@@ -141,4 +160,7 @@ async def omikuji(ctx):
 
     await ctx.send(embed=embed)
 
+# -----------------------------
+# Bot 実行
+# -----------------------------
 bot.run(TOKEN)
