@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 import random
+import time
+import json
 import os
 from flask import Flask
 from threading import Thread
@@ -25,73 +27,109 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 omikuji_data = {
     "超大吉 🔱": "まじでお前今日最強よ。わいも毒舌コメントできないわ",
-
     "大吉 🎉": [
         "今日のお前、奇跡的に輝いてるな。年イチのバグ発生やん",
         "運が良すぎて逆に怖いわ。明日から反動くるぞ",
         "今日だけは主人公補正入ってるっぽいな。調子乗るなよ？",
         "なんか今日のお前、普通にいい感じやん。素直に褒めとくわ"
     ],
-
     "中吉 🙂": [
         "まあまあ良い日。お前にしては上出来やん",
         "油断しなければ事故らん…はず。知らんけど",
         "そこそこ良い感じ。お前の人生で“そこそこ”は奇跡レベル",
         "今日は落ち着いてていい日になりそうやな。安心していけ"
     ],
-
     "小吉 😌": [
         "平和な日。お前が何も起こせるタイプじゃないからな",
         "特に何も起きん。いつも通りの地味な日や",
         "静かに過ごせる日。お前の存在感と同じで薄い",
         "ゆっくりできる日やで。たまにはこういうのも悪くないやろ"
     ],
-
     "吉 👍": [
         "安定してるっていうか、代わり映えしないだけやな",
         "コツコツいけ？お前にスピード感なんて元からないやろ",
         "まあ悪くない。良くもない。お前らしい中途半端さ",
         "安定してて良い日やと思うで。無理せずいこ"
     ],
-
     "末吉 🤔": [
         "微妙すぎて草。お前の人生の縮図やん",
         "なんとも言えん運勢。お前の性格みたいに曖昧",
         "可もなく不可もなく…いや、ちょい不可寄りやな",
         "まあ悪いわけじゃないし、気楽にいけばなんとかなるで"
     ],
-
     "凶 😢": [
         "慎重にいけ。お前の判断力は基本バグってるからな",
         "今日はやらかす未来が見える。気をつけとけよ",
         "運悪いな。まあお前なら慣れてるやろ",
         "ちょっと注意すれば普通に乗り切れるで。落ち込むな"
     ],
-
     "大凶 💀": [
         "終わってる。今日のお前は歩く災害。外出るな",
         "運勢ゴミ。逆にここまで悪いと才能感じるわ",
         "今日の不運、もはや芸術。世界が敵やな",
         "まあ…逆にここから上がるだけやし、ある意味チャンスやで"
     ],
-
     "超大凶 💔☠": "今日はマジでずっと寝てたほうがいい。言葉がでないわ"
 }
 
 weights = [1, 10, 20, 20, 20, 15, 10, 5, 1]
+
+# おみくじ結果は1時間に1回
+COOLDOWN = 3600
+FILE_NAME = "cooldown.json"
+
+# クールダウン中の返信は1分に1回
+MESSAGE_COOLDOWN = 60
+message_cooldown = {}
+
+def load_data():
+    if os.path.exists(FILE_NAME):
+        with open(FILE_NAME, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_data(data):
+    with open(FILE_NAME, "w") as f:
+        json.dump(data, f)
+
+last_used = load_data()
 
 @bot.event
 async def on_ready():
     print(f"ログインした: {bot.user}")
 
 @bot.command()
-@commands.cooldown(1, 60, commands.BucketType.user)
 async def omikuji(ctx):
+    user_id = str(ctx.author.id)
+    now = time.time()
+
+    if user_id in last_used:
+        elapsed = now - last_used[user_id]
+        remaining = COOLDOWN - elapsed
+
+        if remaining > 0:
+            last_msg = message_cooldown.get(user_id, 0)
+
+            if now - last_msg >= MESSAGE_COOLDOWN:
+                minutes = int(remaining // 60)
+                seconds = int(remaining % 60)
+
+                await ctx.send(
+                    f"{ctx.author.mention} あと {minutes}分 {seconds}秒 ⏳"
+                )
+
+                message_cooldown[user_id] = now
+
+            return
+
     results = list(omikuji_data.keys())
     result = random.choices(results, weights=weights, k=1)[0]
 
     value = omikuji_data[result]
     message = random.choice(value) if isinstance(value, list) else value
+
+    last_used[user_id] = now
+    save_data(last_used)
 
     embed = discord.Embed(
         title="🎴 おみくじ結果",
@@ -106,10 +144,5 @@ async def omikuji(ctx):
         embed.set_thumbnail(url=ctx.author.avatar.url)
 
     await ctx.send(embed=embed)
-
-@omikuji.error
-async def omikuji_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
-        return
 
 bot.run(TOKEN)
