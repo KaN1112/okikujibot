@@ -1,12 +1,9 @@
 import discord
 from discord.ext import commands
 import random
-import time
-import json
 import os
 from flask import Flask
 from threading import Thread
-import os
 
 app = Flask(__name__)
 
@@ -19,15 +16,13 @@ def run_web():
     app.run(host="0.0.0.0", port=port)
 
 Thread(target=run_web).start()
+
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# -----------------------------
-# おみくじデータ
-# -----------------------------
 omikuji_data = {
     "超大吉 🔱": "まじでお前今日最強よ。わいも毒舌コメントできないわ",
 
@@ -83,83 +78,21 @@ omikuji_data = {
     "超大凶 💔☠": "今日はマジでずっと寝てたほうがいい。言葉がでないわ"
 }
 
-# -----------------------------
-# 出現確率（重み）
-# -----------------------------
-weights = [
-    1,   # 超大吉
-    10,  # 大吉
-    20,  # 中吉
-    20,  # 小吉
-    20,  # 吉
-    15,  # 末吉
-    10,  # 凶
-    5,   # 大凶
-    1    # 超大凶
-]
+weights = [1, 10, 20, 20, 20, 15, 10, 5, 1]
 
-# -----------------------------
-# クールダウン設定
-# -----------------------------
-COOLDOWN = 3600
-FILE_NAME = "cooldown.json"
-
-def load_data():
-    if os.path.exists(FILE_NAME):
-        with open(FILE_NAME, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_data(data):
-    with open(FILE_NAME, "w") as f:
-        json.dump(data, f)
-
-last_used = load_data()
-
-# -----------------------------
-# Bot 起動
-# -----------------------------
 @bot.event
 async def on_ready():
     print(f"ログインした: {bot.user}")
 
-# -----------------------------
-# おみくじコマンド
-# -----------------------------
 @bot.command()
+@commands.cooldown(1, 60, commands.BucketType.user)
 async def omikuji(ctx):
-    user_id = str(ctx.author.id)
-    now = time.time()
-
-    # クールダウンチェック
-    if user_id in last_used:
-        elapsed = now - last_used[user_id]
-        remaining = COOLDOWN - elapsed
-
-        if remaining > 0:
-            minutes = int(remaining // 60)
-            seconds = int(remaining % 60)
-            await ctx.send(
-                f"{ctx.author.mention} あと {minutes}分 {seconds}秒 ⏳"
-            )
-            return
-
-    # 運勢を重み付きで抽選
     results = list(omikuji_data.keys())
     result = random.choices(results, weights=weights, k=1)[0]
 
-    # 一言メッセージを抽選（リスト or 文字列）
     value = omikuji_data[result]
-    if isinstance(value, list):
-        message = random.choice(value)
-    else:
-        message = value
+    message = random.choice(value) if isinstance(value, list) else value
 
-    # クールダウン更新
-    last_used[user_id] = now
-    save_data(last_used)
-
-    # Embed 作成
     embed = discord.Embed(
         title="🎴 おみくじ結果",
         description=f"**{result}**",
@@ -174,7 +107,9 @@ async def omikuji(ctx):
 
     await ctx.send(embed=embed)
 
-# -----------------------------
-# Bot 実行
-# -----------------------------
+@omikuji.error
+async def omikuji_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        return
+
 bot.run(TOKEN)
