@@ -19,7 +19,7 @@ def run_web():
     app.run(host="0.0.0.0", port=port)
 
 Thread(target=run_web).start()
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True
