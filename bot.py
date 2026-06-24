@@ -4,7 +4,21 @@ import random
 import time
 import json
 import os
+from flask import Flask
+from threading import Thread
+import os
 
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot Online"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+Thread(target=run_web).start()
 TOKEN = os.getenv("TOKEN")
 
 intents = discord.Intents.default()
