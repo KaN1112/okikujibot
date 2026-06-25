@@ -79,7 +79,7 @@ COOLDOWN = 3600
 FILE_NAME = "cooldown.json"
 
 # クールダウン中の返信は1分に1回
-MESSAGE_COOLDOWN = 60
+MESSAGE_COOLDOWN = 10
 message_cooldown = {}
 
 def load_data():
