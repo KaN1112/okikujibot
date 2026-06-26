@@ -96,6 +96,13 @@ last_used = load_data()
 
 @bot.event
 async def on_ready():
+    await bot.change_presence(
+        activity=discord.Activity(
+            type=discord.ActivityType.watching,
+            name="!omikuji"
+        )
+    )
+
     print(f"ログインした: {bot.user}")
 
 @bot.command()
