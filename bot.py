@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import random
 import time
 import json
@@ -22,7 +23,6 @@ Thread(target=run_web).start()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
-intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 omikuji_data = {
@@ -74,11 +74,9 @@ omikuji_data = {
 
 weights = [1, 10, 20, 20, 20, 15, 10, 5, 1]
 
-# おみくじ結果は1時間に1回
 COOLDOWN = 3600
 FILE_NAME = "cooldown.json"
 
-# クールダウン中の返信は1分に1回
 MESSAGE_COOLDOWN = 10
 message_cooldown = {}
 
@@ -99,15 +97,17 @@ async def on_ready():
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name="おみくじ引くには→!omikuji"
+            name="おみくじ引くには→/omikuji"
         )
     )
 
+    await bot.tree.sync()
     print(f"ログインした: {bot.user}")
+    print("スラッシュコマンド同期完了")
 
-@bot.command()
-async def omikuji(ctx):
-    user_id = str(ctx.author.id)
+@bot.tree.command(name="omikuji", description="おみくじを引きます")
+async def omikuji(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
     now = time.time()
 
     if user_id in last_used:
@@ -121,11 +121,17 @@ async def omikuji(ctx):
                 minutes = int(remaining // 60)
                 seconds = int(remaining % 60)
 
-                await ctx.send(
-                    f"{ctx.author.mention} あと {minutes}分 {seconds}秒 ⏳"
+                await interaction.response.send_message(
+                    f"{interaction.user.mention} あと {minutes}分 {seconds}秒 ⏳",
+                    ephemeral=True
                 )
 
                 message_cooldown[user_id] = now
+            else:
+                await interaction.response.send_message(
+                    "まだクールタイム中です ⏳",
+                    ephemeral=True
+                )
 
             return
 
@@ -145,11 +151,11 @@ async def omikuji(ctx):
     )
 
     embed.add_field(name="一言", value=message, inline=False)
-    embed.set_footer(text=f"{ctx.author} の運勢")
+    embed.set_footer(text=f"{interaction.user} の運勢")
 
-    if ctx.author.avatar:
-        embed.set_thumbnail(url=ctx.author.avatar.url)
+    if interaction.user.avatar:
+        embed.set_thumbnail(url=interaction.user.avatar.url)
 
-    await ctx.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 bot.run(TOKEN)
