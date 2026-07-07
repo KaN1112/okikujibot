@@ -26,6 +26,7 @@ Thread(target=run_web, daemon=True).start()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 OWNER_ID = 958943157800800307
+GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -137,10 +138,19 @@ def get_omikuji_message(result):
 
 @bot.event
 async def on_ready():
-    print("===== BOT READY =====")
-    synced = await bot.tree.sync()
-    print(f"同期したコマンド数: {len(synced)}")
-    print("同期したコマンド:", ", ".join(command.name for command in synced))
+    print("===== BOT READY =====", flush=True)
+
+    if GUILD_ID:
+        guild = discord.Object(id=int(GUILD_ID))
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        print(f"サーバー同期したコマンド数: {len(synced)}", flush=True)
+    else:
+        synced = await bot.tree.sync()
+        print(f"グローバル同期したコマンド数: {len(synced)}", flush=True)
+
+    print(f"同期したコマンド数: {len(synced)}", flush=True)
+    print("同期したコマンド:", ", ".join(command.name for command in synced), flush=True)
 
     await bot.change_presence(
         activity=discord.Activity(
@@ -149,7 +159,7 @@ async def on_ready():
         )
     )
 
-    print(f"ログインした: {bot.user}")
+    print(f"ログインした: {bot.user}", flush=True)
 
 
 @bot.tree.command(name="omikuji", description="おみくじを引きます")
