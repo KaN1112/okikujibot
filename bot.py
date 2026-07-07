@@ -197,7 +197,7 @@ class AdminPanel(discord.ui.View):
 
 
 @bot.tree.command(
-    name="omikuji-admin",
+    name="omikuji_admin",
     description="おみくじ管理パネル"
 )
 async def omikuji_admin(interaction: discord.Interaction):
