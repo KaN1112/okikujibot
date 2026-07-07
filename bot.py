@@ -159,3 +159,74 @@ async def omikuji(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 bot.run(TOKEN)
+# ===========================
+# 管理パネル Part1
+# ===========================
+
+OWNER_ID = 958943157800800307  #DiscordユーザーID
+
+FORCE_FILE = "force_result.json"
+
+def load_force():
+    if os.path.exists(FORCE_FILE):
+        with open(FORCE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_force():
+    with open(FORCE_FILE, "w", encoding="utf-8") as f:
+        json.dump(force_result, f, ensure_ascii=False, indent=4)
+
+force_result = load_force()
+
+
+class AdminPanel(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=300)
+
+    @discord.ui.button(
+        label="ユーザーを選択",
+        style=discord.ButtonStyle.blurple,
+        emoji="👤"
+    )
+    async def select_user(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+        await interaction.response.send_message(
+            "Part2でユーザー選択を追加します。",
+            ephemeral=True
+        )
+
+
+@bot.tree.command(
+    name="omikuji-admin",
+    description="おみくじ管理パネル"
+)
+async def omikuji_admin(interaction: discord.Interaction):
+
+    if interaction.user.id != OWNER_ID:
+        await interaction.response.send_message(
+            "❌ このコマンドは使用できません。",
+            ephemeral=True
+        )
+        return
+
+    embed = discord.Embed(
+        title="🎴 おみくじ管理パネル",
+        description="ユーザーを選択してください。",
+        color=discord.Color.red()
+    )
+
+    embed.add_field(
+        name="状態",
+        value="待機中",
+        inline=False
+    )
+
+    await interaction.response.send_message(
+        embed=embed,
+        view=AdminPanel(),
+        ephemeral=True
+    )
