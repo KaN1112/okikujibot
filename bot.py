@@ -1,108 +1,119 @@
-import discord
-from discord.ext import commands
-from discord import app_commands
-import random
-import time
 import json
 import os
-from flask import Flask
+import random
+import time
 from threading import Thread
 
+import discord
+from discord.ext import commands
+from flask import Flask
+
+
 app = Flask(__name__)
+
 
 @app.route("/")
 def home():
     return "Bot Online"
 
+
 def run_web():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-Thread(target=run_web).start()
+
+Thread(target=run_web, daemon=True).start()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-OWNER_ID = 958943157800800307  #DiscordユーザーID
+OWNER_ID = 958943157800800307
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 omikuji_data = {
-    "超大吉 🔱": "まじでお前今日最強よ。わいも毒舌コメントできないわ",
-    "大吉 🎉": [
-        "今日のお前、奇跡的に輝いてるな。年イチのバグ発生やん",
-        "運が良すぎて逆に怖いわ。明日から反動くるぞ",
-        "今日だけは主人公補正入ってるっぽいな。調子乗るなよ？",
-        "なんか今日のお前、普通にいい感じやん。素直に褒めとくわ"
+    "超大吉": "今日は最強。やること全部うまくいくかも。",
+    "大吉": [
+        "運気はかなり良い感じ。思い切って動いてみよう。",
+        "うれしい偶然がありそうな日。",
+        "周りから助けてもらいやすい日。感謝を忘れずに。"
     ],
-    "中吉 🙂": [
-        "まあまあ良い日。お前にしては上出来やん",
-        "油断しなければ事故らん…はず。知らんけど",
-        "そこそこ良い感じ。お前の人生で“そこそこ”は奇跡レベル",
-        "今日は落ち着いてていい日になりそうやな。安心していけ"
+    "中吉": [
+        "安定して良い日。焦らず進めば大丈夫。",
+        "小さなチャンスを拾える日。",
+        "いつもより少しだけ前向きに動けそう。"
     ],
-    "小吉 😌": [
-        "平和な日。お前が何も起こせるタイプじゃないからな",
-        "特に何も起きん。いつも通りの地味な日や",
-        "静かに過ごせる日。お前の存在感と同じで薄い",
-        "ゆっくりできる日やで。たまにはこういうのも悪くないやろ"
+    "小吉": [
+        "穏やかな日。無理せずいこう。",
+        "小さな幸せを見つけやすい日。",
+        "休憩を入れると流れが良くなりそう。"
     ],
-    "吉 👍": [
-        "安定してるっていうか、代わり映えしないだけやな",
-        "コツコツいけ？お前にスピード感なんて元からないやろ",
-        "まあ悪くない。良くもない。お前らしい中途半端さ",
-        "安定してて良い日やと思うで。無理せずいこ"
+    "吉": [
+        "普通に良い日。いつもの調子で大丈夫。",
+        "落ち着いていけば良い方向に進みそう。",
+        "堅実な選択が吉。"
     ],
-    "末吉 🤔": [
-        "微妙すぎて草。お前の人生の縮図やん",
-        "なんとも言えん運勢。お前の性格みたいに曖昧",
-        "可もなく不可もなく…いや、ちょい不可寄りやな",
-        "まあ悪いわけじゃないし、気楽にいけばなんとかなるで"
+    "末吉": [
+        "少しずつ良くなる日。急がなくてOK。",
+        "今は準備のタイミング。あとで効いてくる。",
+        "控えめに動くと安定しそう。"
     ],
-    "凶 😢": [
-        "慎重にいけ。お前の判断力は基本バグってるからな",
-        "今日はやらかす未来が見える。気をつけとけよ",
-        "運悪いな。まあお前なら慣れてるやろ",
-        "ちょっと注意すれば普通に乗り切れるで。落ち込むな"
+    "凶": [
+        "今日は慎重に。確認を増やすと回避できそう。",
+        "無理は禁物。休む判断も大事。",
+        "焦るとミスしやすい日。ゆっくりいこう。"
     ],
-    "大凶 💀": [
-        "終わってる。今日のお前は歩く災害。外出るな",
-        "運勢ゴミ。逆にここまで悪いと才能感じるわ",
-        "今日の不運、もはや芸術。世界が敵やな",
-        "まあ…逆にここから上がるだけやし、ある意味チャンスやで"
+    "大凶": [
+        "今日は守りの日。大きな決断は明日に回してもよさそう。",
+        "まずは深呼吸。落ち着けばちゃんと抜けられる。",
+        "トラブルの芽は早めに摘んでおこう。"
     ],
-    "超大凶 💔☠": "今日はマジでずっと寝てたほうがいい。言葉がでないわ"
+    "超大凶": "今日はかなり慎重に。寝て回復するのも立派な作戦。"
 }
 
 weights = [1, 10, 20, 20, 20, 15, 10, 5, 1]
 
 COOLDOWN = 3600
-FILE_NAME = "cooldown.json"
+MESSAGE_COOLDOWN = 10
+COOLDOWN_FILE = "cooldown.json"
 FORCE_FILE = "force_result.json"
 
-def load_force():
-    if os.path.exists(FORCE_FILE):
-        with open(FORCE_FILE, "r", encoding="utf-8") as f:
+message_cooldown = {}
+
+
+def load_json(filename):
+    if not os.path.exists(filename):
+        return {}
+
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {}
+    except (json.JSONDecodeError, OSError):
+        return {}
 
-def save_force():
-    with open(FORCE_FILE, "w", encoding="utf-8") as f:
-        json.dump(force_result, f, ensure_ascii=False, indent=4)
 
-force_result = load_force()
+def save_json(filename, data):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+
+last_used = load_json(COOLDOWN_FILE)
+force_result = load_json(FORCE_FILE)
+
 
 def set_force_result(user_id, result, mode):
     force_result[str(user_id)] = {
         "result": result,
         "mode": mode
     }
-    save_force()
+    save_json(FORCE_FILE, force_result)
+
 
 def clear_force_result(user_id):
     user_id = str(user_id)
     if user_id in force_result:
         del force_result[user_id]
-        save_force()
+        save_json(FORCE_FILE, force_result)
+
 
 def consume_force_result(user_id):
     user_id = str(user_id)
@@ -114,42 +125,32 @@ def consume_force_result(user_id):
     is_once = data.get("mode") == "once" or data.get("permanent") is False
     if is_once:
         del force_result[user_id]
-        save_force()
+        save_json(FORCE_FILE, force_result)
 
     return result
 
-MESSAGE_COOLDOWN = 10
-message_cooldown = {}
 
-def load_data():
-    if os.path.exists(FILE_NAME):
-        with open(FILE_NAME, "r") as f:
-            return json.load(f)
-    return {}
+def get_omikuji_message(result):
+    value = omikuji_data[result]
+    return random.choice(value) if isinstance(value, list) else value
 
-def save_data(data):
-    with open(FILE_NAME, "w") as f:
-        json.dump(data, f)
-
-last_used = load_data()
 
 @bot.event
 async def on_ready():
     print("===== BOT READY =====")
-
     synced = await bot.tree.sync()
     print(f"同期したコマンド数: {len(synced)}")
+    print("同期したコマンド:", ", ".join(command.name for command in synced))
 
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name="おみくじ引くには→/omikuji"
+            name="おみくじを引くには /omikuji"
         )
     )
 
-    await bot.tree.sync()
     print(f"ログインした: {bot.user}")
-    print("スラッシュコマンド同期完了")
+
 
 @bot.tree.command(name="omikuji", description="おみくじを引きます")
 async def omikuji(interaction: discord.Interaction):
@@ -166,19 +167,16 @@ async def omikuji(interaction: discord.Interaction):
             if now - last_msg >= MESSAGE_COOLDOWN:
                 minutes = int(remaining // 60)
                 seconds = int(remaining % 60)
-
                 await interaction.response.send_message(
-                    f"{interaction.user.mention} あと {minutes}分 {seconds}秒 ⏳",
+                    f"{interaction.user.mention} あと {minutes}分{seconds}秒 待ってね。",
                     ephemeral=True
                 )
-
                 message_cooldown[user_id] = now
             else:
                 await interaction.response.send_message(
-                    "まだクールタイム中です ⏳",
+                    "まだクールタイム中です。",
                     ephemeral=True
                 )
-
             return
 
     forced_result = consume_force_result(user_id)
@@ -188,82 +186,22 @@ async def omikuji(interaction: discord.Interaction):
         results = list(omikuji_data.keys())
         result = random.choices(results, weights=weights, k=1)[0]
 
-    value = omikuji_data[result]
-    message = random.choice(value) if isinstance(value, list) else value
-
     last_used[user_id] = now
-    save_data(last_used)
+    save_json(COOLDOWN_FILE, last_used)
 
     embed = discord.Embed(
-        title="🎴 おみくじ結果",
+        title="おみくじ結果",
         description=f"**{result}**",
         color=discord.Color.gold()
     )
-
-    embed.add_field(name="一言", value=message, inline=False)
+    embed.add_field(name="ひとこと", value=get_omikuji_message(result), inline=False)
     embed.set_footer(text=f"{interaction.user} の運勢")
 
     if interaction.user.avatar:
         embed.set_thumbnail(url=interaction.user.avatar.url)
 
     await interaction.response.send_message(embed=embed)
-# ===========================
-# おみくじ管理システム
-# ===========================
 
-selected_user = {}
-
-class AdminPanel(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=300)
-
-    @discord.ui.button(
-        label="👤 ユーザーを選択",
-        style=discord.ButtonStyle.blurple
-    )
-    async def select_user_button(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
-        await interaction.response.send_message(
-            "Part2でユーザー選択機能を追加します。",
-            ephemeral=True
-        )
-
-
-@bot.tree.command(
-    name="omikuji_admin_disabled",
-    description="おみくじ管理パネル"
-)
-async def omikuji_admin(interaction: discord.Interaction):
-
-    if interaction.user.id != OWNER_ID:
-        await interaction.response.send_message(
-            "❌ このコマンドは使用できません。",
-            ephemeral=True
-        )
-        return
-
-    embed = discord.Embed(
-        title="🎴 おみくじ管理パネル",
-        description="ユーザーを選択してください。",
-        color=discord.Color.red()
-    )
-
-    embed.add_field(
-        name="現在の対象",
-        value="未選択",
-        inline=False
-    )
-
-    await interaction.response.send_message(
-        embed=embed,
-        view=AdminPanel(),
-        ephemeral=True
-    )
-
-bot.tree.remove_command("omikuji_admin_disabled")
 
 class OmikujiAdminPanel(discord.ui.View):
     def __init__(self, owner_id):
@@ -308,7 +246,7 @@ class OmikujiAdminPanel(discord.ui.View):
         )
         return embed
 
-    async def refresh(self, interaction: discord.Interaction):
+    async def refresh(self, interaction):
         await interaction.response.edit_message(embed=self.make_embed(), view=self)
 
     @discord.ui.button(label="保存", style=discord.ButtonStyle.green)
@@ -321,9 +259,9 @@ class OmikujiAdminPanel(discord.ui.View):
             return
 
         set_force_result(self.target_user.id, self.fortune, self.mode)
+        mode_label = "次回のみ" if self.mode == "once" else "固定"
         await interaction.response.send_message(
-            f"{self.target_user.mention} の運勢を「{self.fortune}」に設定しました。"
-            f" 適用方法: {'次回のみ' if self.mode == 'once' else '固定'}",
+            f"{self.target_user.mention} の運勢を「{self.fortune}」に設定しました。適用方法: {mode_label}",
             ephemeral=True
         )
 
@@ -355,7 +293,7 @@ class OmikujiTargetUserSelect(discord.ui.UserSelect):
 class OmikujiFortuneSelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label=result[:100], value=result)
+            discord.SelectOption(label=result, value=result)
             for result in omikuji_data.keys()
         ]
         super().__init__(
@@ -400,7 +338,7 @@ class OmikujiModeSelect(discord.ui.Select):
     name="omikuji_admin",
     description="おみくじの結果をユーザーごとに管理します"
 )
-async def omikuji_admin_select(interaction: discord.Interaction):
+async def omikuji_admin(interaction: discord.Interaction):
     if interaction.user.id != OWNER_ID:
         await interaction.response.send_message(
             "このコマンドは管理者だけが使えます。",
@@ -414,4 +352,9 @@ async def omikuji_admin_select(interaction: discord.Interaction):
         view=view,
         ephemeral=True
     )
+
+
+if not TOKEN:
+    raise RuntimeError("DISCORD_TOKEN が設定されていません。")
+
 bot.run(TOKEN)
