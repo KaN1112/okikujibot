@@ -353,7 +353,7 @@ class OmikujiModeSelect(discord.ui.Select):
 
 @bot.tree.command(
     name="omikuji_admin",
-    description="おみくじの結果をユーザーごとに管理します"
+    description=""
 )
 async def omikuji_admin(interaction: discord.Interaction):
     if interaction.user.id != OWNER_ID:
