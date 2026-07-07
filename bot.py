@@ -21,6 +21,7 @@ def run_web():
 Thread(target=run_web).start()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+OWNER_ID = 958943157800800307  #DiscordユーザーID
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -76,6 +77,19 @@ weights = [1, 10, 20, 20, 20, 15, 10, 5, 1]
 
 COOLDOWN = 3600
 FILE_NAME = "cooldown.json"
+FORCE_FILE = "force_result.json"
+
+def load_force():
+    if os.path.exists(FORCE_FILE):
+        with open(FORCE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_force():
+    with open(FORCE_FILE, "w", encoding="utf-8") as f:
+        json.dump(force_result, f, ensure_ascii=False, indent=4)
+
+force_result = load_force()
 
 MESSAGE_COOLDOWN = 10
 message_cooldown = {}
@@ -157,45 +171,27 @@ async def omikuji(interaction: discord.Interaction):
         embed.set_thumbnail(url=interaction.user.avatar.url)
 
     await interaction.response.send_message(embed=embed)
-
-bot.run(TOKEN)
 # ===========================
-# 管理パネル Part1
+# おみくじ管理システム
 # ===========================
 
-OWNER_ID = 958943157800800307  #DiscordユーザーID
-
-FORCE_FILE = "force_result.json"
-
-def load_force():
-    if os.path.exists(FORCE_FILE):
-        with open(FORCE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def save_force():
-    with open(FORCE_FILE, "w", encoding="utf-8") as f:
-        json.dump(force_result, f, ensure_ascii=False, indent=4)
-
-force_result = load_force()
-
+selected_user = {}
 
 class AdminPanel(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=300)
 
     @discord.ui.button(
-        label="ユーザーを選択",
-        style=discord.ButtonStyle.blurple,
-        emoji="👤"
+        label="👤 ユーザーを選択",
+        style=discord.ButtonStyle.blurple
     )
-    async def select_user(
+    async def select_user_button(
         self,
         interaction: discord.Interaction,
         button: discord.ui.Button
     ):
         await interaction.response.send_message(
-            "Part2でユーザー選択を追加します。",
+            "Part2でユーザー選択機能を追加します。",
             ephemeral=True
         )
 
@@ -220,8 +216,8 @@ async def omikuji_admin(interaction: discord.Interaction):
     )
 
     embed.add_field(
-        name="状態",
-        value="待機中",
+        name="現在の対象",
+        value="未選択",
         inline=False
     )
 
@@ -230,3 +226,4 @@ async def omikuji_admin(interaction: discord.Interaction):
         view=AdminPanel(),
         ephemeral=True
     )
+bot.run(TOKEN)
