@@ -108,6 +108,11 @@ last_used = load_data()
 
 @bot.event
 async def on_ready():
+    print("===== BOT READY =====")
+
+    synced = await bot.tree.sync()
+    print(f"同期したコマンド数: {len(synced)}")
+
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
