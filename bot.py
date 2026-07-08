@@ -353,7 +353,7 @@ class OmikujiModeSelect(discord.ui.Select):
 
 @bot.tree.command(
     name="omikuji_admin",
-    description=""
+    description="管理パネル"
 )
 async def omikuji_admin(interaction: discord.Interaction):
     if interaction.user.id != OWNER_ID:
