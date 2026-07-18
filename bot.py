@@ -374,4 +374,7 @@ async def omikuji_admin(interaction: discord.Interaction):
 if not TOKEN:
     raise RuntimeError("DISCORD_TOKEN が設定されていません。")
 
+print("TOKEN exists:", TOKEN is not None)
+print("TOKEN length:", len(TOKEN) if TOKEN else 0)
+
 bot.run(TOKEN)
