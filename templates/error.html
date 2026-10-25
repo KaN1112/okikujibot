@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}エラー{% endblock %}
+{% block content %}
+<section class="error-panel"><div class="error-code">!</div><div><div class="eyebrow">REQUEST ERROR</div><h1>処理を完了できませんでした</h1><p>{{ message }}</p><a class="button" href="{{ url_for('home') }}">管理画面へ戻る</a></div></section>
+{% endblock %}

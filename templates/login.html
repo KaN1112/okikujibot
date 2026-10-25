@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}ログイン{% endblock %}
+{% block content %}
+<section class="login-panel">
+  <div class="eyebrow">ANNOUNCEMENT CONSOLE</div>
+  <h1>必要な人へ、<br>必要な言葉を。</h1>
+  <p>Discordサーバーへのお知らせを、安全に作成・確認・配信します。</p>
+  {% if missing_config %}
+    <div class="notice danger">管理画面の設定が未完了です：{{ missing_config|join(', ') }}</div>
+  {% else %}
+    <a class="button primary" href="{{ url_for('login') }}">Discordでログイン</a>
+  {% endif %}
+</section>
+{% endblock %}

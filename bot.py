@@ -6,15 +6,7 @@ from threading import Thread
 
 import discord
 from discord.ext import commands
-from flask import Flask
-
-
-app = Flask(__name__)
-
-
-@app.route("/")
-def home():
-    return "Bot Online"
+from web_admin import create_web_app
 
 
 def run_web():
@@ -29,6 +21,7 @@ GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+app = create_web_app(bot, OWNER_ID)
 
 omikuji_data = {
     "神吉 👑": {

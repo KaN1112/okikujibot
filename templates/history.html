@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}送信履歴{% endblock %}
+{% block content %}
+<section class="page-heading"><div><div class="eyebrow">DELIVERY LOG</div><h1>送信履歴</h1></div><a class="button" href="{{ url_for('announcement_form') }}">新規作成</a></section>
+{% if not persistent_history %}<div class="notice">現在の履歴は再起動時に消去されます。永続ストレージを利用する場合は環境変数を設定してください。</div>{% endif %}
+<div class="history-list">
+{% for item in items %}
+  <article class="history-item">
+    <div class="history-head"><span class="result {{ 'success' if item.result == '成功' else 'failure' }}">{{ item.result }}</span><time>{{ item.sent_at }}</time></div>
+    <div class="history-destination">{{ item.guild_name or item.guild_id }} / #{{ item.channel_name or item.channel_id }}</div>
+    <pre>{{ item.content }}</pre>
+    <div class="history-details">送信者: {{ item.sender_id }}{% if item.message_id %} · Message ID: {{ item.message_id }}{% endif %}{% if item.error %} · エラー: {{ item.error }}{% endif %}</div>
+  </article>
+{% else %}
+  <div class="empty-state">送信履歴はまだありません。</div>
+{% endfor %}
+</div>
+{% endblock %}

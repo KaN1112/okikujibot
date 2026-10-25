@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}お知らせ作成{% endblock %}
+{% block content %}
+<section class="page-heading"><div><div class="eyebrow">NEW MESSAGE</div><h1>お知らせを作成</h1></div><span class="status-dot">Bot接続確認中</span></section>
+<div id="alert" class="notice danger hidden" role="alert"></div>
+<div class="composer-grid">
+  <form id="composer" class="panel" autocomplete="off">
+    <div class="field">
+      <label for="guild">送信サーバー</label>
+      <select id="guild" required><option value="">読み込み中…</option></select>
+    </div>
+    <div class="field">
+      <label for="channel">送信チャンネル</label>
+      <select id="channel" required disabled><option value="">サーバーを選択してください</option></select>
+      <small id="destination">送信先はまだ選択されていません。</small>
+    </div>
+    <div class="field">
+      <div class="label-row"><label for="content">メッセージ</label><span id="counter">0 / {{ message_limit }}</span></div>
+      <textarea id="content" maxlength="{{ message_limit }}" rows="10" placeholder="お知らせ内容を入力してください。Discord Markdown、URL、絵文字を使用できます。" required></textarea>
+    </div>
+    <fieldset>
+      <legend>通知を許可するメンション</legend>
+      <p class="field-note">すべて初期状態はOFFです。本文に含めた対象だけが通知されます。</p>
+      <label class="toggle"><input id="mention-everyone" type="checkbox"><span></span>Everyone / Here</label>
+      <label class="toggle"><input id="mention-roles" type="checkbox"><span></span>ロール</label>
+      <select id="roles" multiple disabled aria-label="通知を許可するロール"></select>
+      <label class="toggle"><input id="mention-users" type="checkbox"><span></span>ユーザー</label>
+      <select id="users" multiple disabled aria-label="通知を許可するユーザー"></select>
+    </fieldset>
+    <button class="button primary full" type="submit">内容を確認して送信</button>
+  </form>
+  <aside class="preview-wrap">
+    <div class="preview-label">DISCORD PREVIEW</div>
+    <div class="discord-preview">
+      <div class="bot-avatar">お</div>
+      <div class="discord-body">
+        <div><strong>おみくじBot</strong><span class="bot-tag">アプリ</span><time>今日</time></div>
+        <div id="preview-message" class="preview-message muted">メッセージを入力すると、ここにプレビューが表示されます。</div>
+      </div>
+    </div>
+    <dl class="preview-meta"><div><dt>サーバー</dt><dd id="preview-guild">未選択</dd></div><div><dt>チャンネル</dt><dd id="preview-channel">未選択</dd></div><div><dt>通知</dt><dd id="preview-mentions">なし</dd></div></dl>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='announcement.js') }}" defer></script>{% endblock %}

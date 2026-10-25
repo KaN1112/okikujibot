@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}ダッシュボード{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><div class="eyebrow">DASHBOARD</div><h1>お知らせ管理</h1></div>
+  <span class="user-chip">{{ current_user.username }} · {{ current_user.id }}</span>
+</section>
+{% if not persistent_history %}
+<div class="notice">履歴はメモリ内に保存されています。再起動後も保持するには <code>ANNOUNCEMENT_HISTORY_FILE</code> を永続ディスク上のパスに設定してください。</div>
+{% endif %}
+<div class="action-grid">
+  <a class="action-card" href="{{ url_for('announcement_form') }}">
+    <span class="card-index">01</span><h2>お知らせを作成</h2><p>送信先とメンションを確認しながらメッセージを作成します。</p><span class="arrow">→</span>
+  </a>
+  <a class="action-card" href="{{ url_for('announcement_history') }}">
+    <span class="card-index">02</span><h2>送信履歴を見る</h2><p>成功・失敗、DiscordメッセージID、エラー内容を確認します。</p><span class="arrow">→</span>
+  </a>
+</div>
+{% endblock %}

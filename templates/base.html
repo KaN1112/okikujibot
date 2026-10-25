@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}お知らせ管理{% endblock %} · おみくじBot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('dashboard') if current_user else url_for('home') }}">
+      <span class="brand-mark">告</span><span>おみくじBot 管理</span>
+    </a>
+    {% if current_user %}
+    <nav>
+      <a href="{{ url_for('dashboard') }}">ホーム</a>
+      <a href="{{ url_for('announcement_form') }}">新規作成</a>
+      <a href="{{ url_for('announcement_history') }}">送信履歴</a>
+      <form action="{{ url_for('logout') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="text-button" type="submit">ログアウト</button>
+      </form>
+    </nav>
+    {% endif %}
+  </header>
+  <main class="shell">{% block content %}{% endblock %}</main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
