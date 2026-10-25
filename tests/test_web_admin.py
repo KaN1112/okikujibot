@@ -49,12 +49,12 @@ class FakeChannel:
 
 
 class FakeGuild:
-    def __init__(self):
-        self.id = 10
-        self.name = "Test Guild"
+    def __init__(self, guild_id=10, channel_id=20, name="Test Guild"):
+        self.id = guild_id
+        self.name = name
         self.icon = None
         self.me = FakeMember(1, "Bot", bot=True)
-        self.channel = FakeChannel()
+        self.channel = FakeChannel(channel_id)
         self.text_channels = [self.channel]
         self.roles = [FakeRole(10, "everyone", default=True), FakeRole(30, "News")]
         self.members = [self.me, FakeMember(40, "Admin")]
@@ -66,14 +66,15 @@ class FakeGuild:
 class FakeBot:
     def __init__(self):
         self.guild = FakeGuild()
-        self.guilds = [self.guild]
+        self.second_guild = FakeGuild(11, 21, "Second Guild")
+        self.guilds = [self.guild, self.second_guild]
         self.loop = SimpleNamespace(is_closed=lambda: False)
 
     def is_ready(self):
         return True
 
     def get_guild(self, guild_id):
-        return self.guild if guild_id == self.guild.id else None
+        return next((guild for guild in self.guilds if guild.id == guild_id), None)
 
     def close(self):
         pass
@@ -196,7 +197,7 @@ class WebAdminTests(unittest.TestCase):
             headers={"X-CSRF-Token": "csrf"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()["message_id"], "999")
+        self.assertEqual(response.get_json()["results"][0]["message_id"], "999")
         self.assertEqual(len(self.bot.guild.channel.sent), 1)
         duplicate = self.client.post(
             "/api/announcements",
@@ -206,6 +207,26 @@ class WebAdminTests(unittest.TestCase):
         self.assertEqual(duplicate.status_code, 409)
         self.assertEqual(len(self.bot.guild.channel.sent), 1)
         self.assertTrue(os.path.exists(os.environ["ANNOUNCEMENT_HISTORY_FILE"]))
+
+    def test_multiple_guilds_are_sent_in_one_request(self):
+        self.login()
+        payload = {
+            "content": "全サーバーへのお知らせ",
+            "send_token": self.send_token(),
+            "destinations": [
+                {"guild_id": "10", "channel_id": "20", "mentions": {}},
+                {"guild_id": "11", "channel_id": "21", "mentions": {}},
+            ],
+        }
+        response = self.client.post(
+            "/api/announcements",
+            json=payload,
+            headers={"X-CSRF-Token": "csrf"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["success_count"], 2)
+        self.assertEqual(len(self.bot.guild.channel.sent), 1)
+        self.assertEqual(len(self.bot.second_guild.channel.sent), 1)
 
     def test_selected_mention_must_exist_in_content(self):
         self.login()

@@ -1,0 +1,31 @@
+.destination-list {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+.destination-card {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #15181e;
+  padding: 16px;
+}
+
+.destination-card h3 {
+  font-size: 15px;
+  margin: 0 0 12px;
+}
+
+.destination-card fieldset {
+  margin: 15px 0 0;
+  padding-top: 12px;
+}
+
+.destination-card select[multiple] {
+  min-height: 82px;
+}
+
+.preview-meta dd {
+  max-width: 70%;
+  text-align: right;
+}

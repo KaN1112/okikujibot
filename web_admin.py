@@ -19,6 +19,7 @@ from flask import Flask, jsonify, redirect, render_template, request, session, u
 
 DISCORD_API = "https://discord.com/api/v10"
 MESSAGE_LIMIT = 2000
+DESTINATION_LIMIT = 10
 SEND_TIMEOUT = 15
 RATE_LIMIT_COUNT = 5
 RATE_LIMIT_WINDOW = 60
@@ -185,7 +186,7 @@ def create_web_app(bot, owner_id, config=None):
         ]
         return {"guild": {"id": str(guild.id), "name": guild.name}, "channels": channels, "roles": roles, "users": users}
 
-    async def send_announcement(guild_id, channel_id, content, mention_options):
+    def prepare_announcement(guild_id, channel_id, content, mention_options):
         guild = bot.get_guild(guild_id)
         if guild is None:
             raise ValueError("指定されたサーバーにBotが参加していません。")
@@ -223,12 +224,50 @@ def create_web_app(bot, owner_id, config=None):
             users=users,
             replied_user=False,
         )
-        message = await channel.send(content, allowed_mentions=allowed_mentions)
-        return {
-            "message_id": str(message.id),
-            "guild_name": guild.name,
-            "channel_name": channel.name,
-        }
+        return guild, channel, allowed_mentions
+
+    async def send_announcements(destinations, content):
+        prepared = []
+        for destination in destinations:
+            try:
+                guild_id = int(destination.get("guild_id"))
+                channel_id = int(destination.get("channel_id"))
+            except (TypeError, ValueError) as error:
+                raise ValueError("送信先が不正です。") from error
+            mentions = destination.get("mentions")
+            if not isinstance(mentions, dict):
+                mentions = {}
+            guild, channel, allowed_mentions = prepare_announcement(
+                guild_id, channel_id, content, mentions
+            )
+            prepared.append((destination, guild, channel, allowed_mentions))
+
+        results = []
+        for destination, guild, channel, allowed_mentions in prepared:
+            try:
+                message = await channel.send(content, allowed_mentions=allowed_mentions)
+                results.append(
+                    {
+                        "ok": True,
+                        "guild_id": str(guild.id),
+                        "guild_name": guild.name,
+                        "channel_id": str(channel.id),
+                        "channel_name": channel.name,
+                        "message_id": str(message.id),
+                    }
+                )
+            except discord.DiscordException as error:
+                results.append(
+                    {
+                        "ok": False,
+                        "guild_id": str(guild.id),
+                        "guild_name": guild.name,
+                        "channel_id": str(channel.id),
+                        "channel_name": channel.name,
+                        "error": str(error),
+                    }
+                )
+        return results
 
     def rate_limited(user_id):
         now = time.monotonic()
@@ -241,13 +280,13 @@ def create_web_app(bot, owner_id, config=None):
             queue.append(now)
             return False
 
-    def history_item(payload, result, error=None, message_id=None):
+    def history_item(payload, destination, result, error=None, message_id=None):
         return {
             "sent_at": datetime.now(timezone.utc).isoformat(),
             "sender_id": str(session["user"]["id"]),
-            "guild_id": str(payload.get("guild_id", "")),
+            "guild_id": str(destination.get("guild_id", "")),
             "guild_name": result.get("guild_name", "") if result else "",
-            "channel_id": str(payload.get("channel_id", "")),
+            "channel_id": str(destination.get("channel_id", "")),
             "channel_name": result.get("channel_name", "") if result else "",
             "content": str(payload.get("content", "")),
             "result": "成功" if not error else "失敗",
@@ -395,19 +434,49 @@ def create_web_app(bot, owner_id, config=None):
             return jsonify({"error": "メッセージを入力してください。"}), 400
         if len(content) > MESSAGE_LIMIT:
             return jsonify({"error": f"メッセージは{MESSAGE_LIMIT}文字以内にしてください。"}), 400
+        destinations = payload.get("destinations")
+        if not isinstance(destinations, list):
+            destinations = [
+                {
+                    "guild_id": payload.get("guild_id"),
+                    "channel_id": payload.get("channel_id"),
+                    "mentions": payload.get("mentions", {}),
+                }
+            ]
+        if not destinations or len(destinations) > DESTINATION_LIMIT:
+            return jsonify({"error": f"送信先は1〜{DESTINATION_LIMIT}件で指定してください。"}), 400
+        destination_keys = {
+            (str(item.get("guild_id", "")), str(item.get("channel_id", "")))
+            for item in destinations
+            if isinstance(item, dict)
+        }
+        if len(destination_keys) != len(destinations):
+            return jsonify({"error": "重複または不正な送信先が含まれています。"}), 400
         try:
-            guild_id = int(payload.get("guild_id"))
-            channel_id = int(payload.get("channel_id"))
-        except (TypeError, ValueError):
-            return jsonify({"error": "送信先が不正です。"}), 400
-        mentions = payload.get("mentions") if isinstance(payload.get("mentions"), dict) else {}
-        try:
-            result = run_on_bot(send_announcement(guild_id, channel_id, content, mentions))
-            item = history_item(payload, result, message_id=result["message_id"])
-            history.add(item)
-            return jsonify({"ok": True, "message_id": result["message_id"]})
+            results = run_on_bot(send_announcements(destinations, content))
+            for destination, result in zip(destinations, results):
+                history.add(
+                    history_item(
+                        payload,
+                        destination,
+                        result,
+                        error=result.get("error"),
+                        message_id=result.get("message_id"),
+                    )
+                )
+            success_count = sum(result["ok"] for result in results)
+            status = 200 if success_count == len(results) else 207
+            return jsonify(
+                {
+                    "ok": success_count == len(results),
+                    "success_count": success_count,
+                    "failure_count": len(results) - success_count,
+                    "results": results,
+                }
+            ), status
         except (ValueError, PermissionError, RuntimeError, discord.DiscordException) as error:
-            history.add(history_item(payload, {}, error=str(error)))
+            for destination in destinations:
+                history.add(history_item(payload, destination, {}, error=str(error)))
             status = 403 if isinstance(error, PermissionError) else 400
             if isinstance(error, (RuntimeError, discord.DiscordException)):
                 status = 503
