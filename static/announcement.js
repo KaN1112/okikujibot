@@ -21,9 +21,30 @@
     if (!response.ok && response.status !== 207) throw new Error(data.error || "処理に失敗しました。");
     return { data, status: response.status };
   };
-  const fill = (element, items, label) => {
-    element.replaceChildren();
-    items.forEach((item) => element.add(new Option(label(item), item.id)));
+  const fillGuilds = (items) => {
+    guilds.replaceChildren();
+    items.forEach((guild) => {
+      const label = document.createElement("label");
+      label.className = "server-check";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = guild.id;
+      input.addEventListener("change", renderDestinations);
+      const icon = document.createElement("span");
+      icon.className = "server-icon";
+      if (guild.icon) {
+        const image = document.createElement("img");
+        image.src = guild.icon;
+        image.alt = "";
+        icon.append(image);
+      } else icon.textContent = guild.name.slice(0, 1);
+      const text = document.createElement("span");
+      text.textContent = guild.name;
+      const id = document.createElement("small");
+      id.textContent = guild.id;
+      label.append(input, icon, text, id);
+      guilds.append(label);
+    });
   };
   const makeSelect = (items, label) => {
     const select = document.createElement("select");
@@ -122,9 +143,10 @@
     renderPreview();
   };
   const renderDestinations = async () => {
-    const chosen = selectedValues(guilds);
+    const chosenInputs = [...guilds.querySelectorAll('input[type="checkbox"]:checked')];
+    const chosen = chosenInputs.map((input) => input.value);
     if (chosen.length > 10) {
-      [...guilds.options].forEach((option) => { option.selected = chosen.slice(0, 10).includes(option.value); });
+      chosenInputs.at(-1).checked = false;
       showError("送信先サーバーは最大10件です。");
       return;
     }
@@ -173,10 +195,9 @@
     document.querySelector("#preview-mentions").textContent = mentions ? `${mentions}設定` : "なし";
   };
   api("/api/guilds").then(({ data }) => {
-    fill(guilds, data.guilds, (item) => `${item.name} (${item.id})`);
+    fillGuilds(data.guilds);
     document.querySelector(".status-dot").textContent = "Bot接続済み";
   }).catch((error) => showError(error.message));
-  guilds.addEventListener("change", renderDestinations);
   content.addEventListener("input", renderPreview);
   document.querySelectorAll('input[name="message-mode"]').forEach((input) => input.addEventListener("change", updateSeparateMessages));
   form.addEventListener("submit", async (event) => {

@@ -6,9 +6,8 @@
 <div class="composer-grid">
   <form id="composer" class="panel" autocomplete="off">
     <div class="field">
-      <label for="guilds">送信サーバー（複数選択可・最大10件）</label>
-      <select id="guilds" multiple required><option value="">読み込み中…</option></select>
-      <small>PCではCtrlまたは⌘キーを押しながら選択できます。</small>
+      <div class="section-label">送信サーバー（複数選択可・最大10件）</div>
+      <div id="guilds" class="server-check-list"><span class="loading-text">読み込み中…</span></div>
     </div>
     <fieldset class="delivery-mode">
       <legend>メッセージの送信方法</legend>

@@ -4,6 +4,65 @@
   margin: 0 0 24px;
 }
 
+.server-check-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.server-check {
+  display: grid;
+  grid-template-columns: auto 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #11141a;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.server-check:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(88, 101, 242, .12);
+}
+
+.server-check input {
+  accent-color: var(--accent);
+}
+
+.server-check small {
+  grid-column: 3;
+  margin-top: -9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--surface-2);
+  font-weight: 800;
+}
+
+.server-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.loading-text {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .destination-card {
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -98,6 +157,7 @@
 }
 
 @media (max-width: 620px) {
+  .server-check-list,
   .channel-check-list {
     grid-template-columns: 1fr;
   }
