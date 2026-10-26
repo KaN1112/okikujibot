@@ -25,7 +25,80 @@
   min-height: 82px;
 }
 
+.delivery-mode {
+  margin-top: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 10px 0;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.choice input {
+  accent-color: var(--accent);
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.channel-check-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.channel-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #11141a;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.channel-check:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(88, 101, 242, .12);
+}
+
+.channel-check input {
+  accent-color: var(--accent);
+}
+
+.separate-messages {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.channel-message label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.channel-message textarea {
+  min-height: 110px;
+}
+
 .preview-meta dd {
   max-width: 70%;
   text-align: right;
+}
+
+@media (max-width: 620px) {
+  .channel-check-list {
+    grid-template-columns: 1fr;
+  }
 }

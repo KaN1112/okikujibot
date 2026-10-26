@@ -19,7 +19,7 @@ from flask import Flask, jsonify, redirect, render_template, request, session, u
 
 DISCORD_API = "https://discord.com/api/v10"
 MESSAGE_LIMIT = 2000
-DESTINATION_LIMIT = 10
+DESTINATION_LIMIT = 50
 SEND_TIMEOUT = 15
 RATE_LIMIT_COUNT = 5
 RATE_LIMIT_WINDOW = 60
@@ -226,7 +226,7 @@ def create_web_app(bot, owner_id, config=None):
         )
         return guild, channel, allowed_mentions
 
-    async def send_announcements(destinations, content):
+    async def send_announcements(destinations):
         prepared = []
         for destination in destinations:
             try:
@@ -237,13 +237,14 @@ def create_web_app(bot, owner_id, config=None):
             mentions = destination.get("mentions")
             if not isinstance(mentions, dict):
                 mentions = {}
+            content = destination["content"]
             guild, channel, allowed_mentions = prepare_announcement(
                 guild_id, channel_id, content, mentions
             )
-            prepared.append((destination, guild, channel, allowed_mentions))
+            prepared.append((destination, guild, channel, content, allowed_mentions))
 
         results = []
-        for destination, guild, channel, allowed_mentions in prepared:
+        for destination, guild, channel, content, allowed_mentions in prepared:
             try:
                 message = await channel.send(content, allowed_mentions=allowed_mentions)
                 results.append(
@@ -288,7 +289,7 @@ def create_web_app(bot, owner_id, config=None):
             "guild_name": result.get("guild_name", "") if result else "",
             "channel_id": str(destination.get("channel_id", "")),
             "channel_name": result.get("channel_name", "") if result else "",
-            "content": str(payload.get("content", "")),
+            "content": str(destination.get("content", payload.get("content", ""))),
             "result": "成功" if not error else "失敗",
             "message_id": message_id,
             "error": error,
@@ -429,11 +430,7 @@ def create_web_app(bot, owner_id, config=None):
         user_id = str(session["user"]["id"])
         if rate_limited(user_id):
             return jsonify({"error": "送信回数が上限に達しました。1分後に再試行してください。"}), 429
-        content = payload.get("content")
-        if not isinstance(content, str) or not content.strip():
-            return jsonify({"error": "メッセージを入力してください。"}), 400
-        if len(content) > MESSAGE_LIMIT:
-            return jsonify({"error": f"メッセージは{MESSAGE_LIMIT}文字以内にしてください。"}), 400
+        common_content = payload.get("content")
         destinations = payload.get("destinations")
         if not isinstance(destinations, list):
             destinations = [
@@ -452,8 +449,14 @@ def create_web_app(bot, owner_id, config=None):
         }
         if len(destination_keys) != len(destinations):
             return jsonify({"error": "重複または不正な送信先が含まれています。"}), 400
+        for destination in destinations:
+            destination["content"] = destination.get("content", common_content)
+            if not isinstance(destination["content"], str) or not destination["content"].strip():
+                return jsonify({"error": "すべての送信先にメッセージを入力してください。"}), 400
+            if len(destination["content"]) > MESSAGE_LIMIT:
+                return jsonify({"error": f"メッセージは送信先ごとに{MESSAGE_LIMIT}文字以内にしてください。"}), 400
         try:
-            results = run_on_bot(send_announcements(destinations, content))
+            results = run_on_bot(send_announcements(destinations))
             for destination, result in zip(destinations, results):
                 history.add(
                     history_item(

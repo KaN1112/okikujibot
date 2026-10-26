@@ -10,8 +10,13 @@
       <select id="guilds" multiple required><option value="">読み込み中…</option></select>
       <small>PCではCtrlまたは⌘キーを押しながら選択できます。</small>
     </div>
+    <fieldset class="delivery-mode">
+      <legend>メッセージの送信方法</legend>
+      <label class="choice"><input type="radio" name="message-mode" value="same" checked> 同じメッセージをすべてのチャンネルへ送信</label>
+      <label class="choice"><input type="radio" name="message-mode" value="separate"> チャンネルごとに別のメッセージを送信</label>
+    </fieldset>
     <div id="destinations" class="destination-list"></div>
-    <div class="field">
+    <div id="common-message" class="field">
       <div class="label-row"><label for="content">メッセージ</label><span id="counter">0 / {{ message_limit }}</span></div>
       <textarea id="content" maxlength="{{ message_limit }}" rows="10" placeholder="お知らせ内容を入力してください。Discord Markdown、URL、絵文字を使用できます。" required></textarea>
     </div>

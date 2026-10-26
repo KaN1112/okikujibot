@@ -55,12 +55,13 @@ class FakeGuild:
         self.icon = None
         self.me = FakeMember(1, "Bot", bot=True)
         self.channel = FakeChannel(channel_id)
-        self.text_channels = [self.channel]
+        self.second_channel = FakeChannel(channel_id + 100, "updates")
+        self.text_channels = [self.channel, self.second_channel]
         self.roles = [FakeRole(10, "everyone", default=True), FakeRole(30, "News")]
         self.members = [self.me, FakeMember(40, "Admin")]
 
     def get_channel(self, channel_id):
-        return self.channel if channel_id == self.channel.id else None
+        return next((channel for channel in self.text_channels if channel.id == channel_id), None)
 
 
 class FakeBot:
@@ -227,6 +228,24 @@ class WebAdminTests(unittest.TestCase):
         self.assertEqual(response.get_json()["success_count"], 2)
         self.assertEqual(len(self.bot.guild.channel.sent), 1)
         self.assertEqual(len(self.bot.second_guild.channel.sent), 1)
+
+    def test_channels_can_receive_separate_messages(self):
+        self.login()
+        payload = {
+            "send_token": self.send_token(),
+            "destinations": [
+                {"guild_id": "10", "channel_id": "20", "content": "一つ目", "mentions": {}},
+                {"guild_id": "10", "channel_id": "120", "content": "二つ目", "mentions": {}},
+            ],
+        }
+        response = self.client.post(
+            "/api/announcements",
+            json=payload,
+            headers={"X-CSRF-Token": "csrf"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.bot.guild.channel.sent[0][0], "一つ目")
+        self.assertEqual(self.bot.guild.second_channel.sent[0][0], "二つ目")
 
     def test_selected_mention_must_exist_in_content(self):
         self.login()
