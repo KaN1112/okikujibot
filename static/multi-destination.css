@@ -108,26 +108,38 @@
 }
 
 .channel-check-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #11141a;
 }
 
 .channel-check {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px 10px;
-  background: #11141a;
+  min-height: 42px;
+  border-bottom: 1px solid var(--line);
+  padding: 9px 12px;
+  background: transparent;
   font-size: 13px;
   cursor: pointer;
+  transition: background .15s ease;
+}
+
+.channel-check:last-child {
+  border-bottom: 0;
 }
 
 .channel-check:has(input:checked) {
-  border-color: var(--accent);
   background: rgba(88, 101, 242, .12);
+}
+
+.channel-check:hover {
+  background: var(--surface-2);
 }
 
 .channel-check input {
@@ -157,8 +169,7 @@
 }
 
 @media (max-width: 620px) {
-  .server-check-list,
-  .channel-check-list {
+  .server-check-list {
     grid-template-columns: 1fr;
   }
 }
